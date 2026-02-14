@@ -8,7 +8,7 @@ plugins {
 }
 
 group = "com.dalmeng"
-version = "1.0.1"
+version = "1.0.2"
 
 repositories {
     mavenCentral()
@@ -61,6 +61,36 @@ publishing {
     publications {
         create<MavenPublication>("maven") {
             from(components["java"])
+            
+            groupId = project.group.toString()
+            artifactId = project.name
+            version = project.version.toString()
+            
+            pom {
+                name.set("Kotlin Common JPA Library")
+                description.set("Common JPA utilities for Spring Boot Kotlin applications including base entities, repositories, and QueryDSL support")
+                url.set("https://github.com/dalmengs/kotlin-common-jpa-lib")
+                
+                licenses {
+                    license {
+                        name.set("The Apache License, Version 2.0")
+                        url.set("http://www.apache.org/licenses/LICENSE-2.0.txt")
+                    }
+                }
+                
+                developers {
+                    developer {
+                        id.set("dalmeng")
+                        name.set("dalmeng")
+                    }
+                }
+                
+                scm {
+                    connection.set("scm:git:git://github.com/dalmengs/kotlin-common-jpa-lib.git")
+                    developerConnection.set("scm:git:ssh://github.com/dalmengs/kotlin-common-jpa-lib.git")
+                    url.set("https://github.com/dalmengs/kotlin-common-jpa-lib")
+                }
+            }
         }
     }
     
