@@ -1,0 +1,89 @@
+---
+description: Kotlin Common JPA Library 사용 가이드
+globs: *.kt
+---
+
+# Kotlin Common JPA Library 사용 가이드
+
+이 프로젝트는 `com.dalmeng.common.jpa.entity.BaseEntity`를 사용합니다.
+
+## BaseEntity 상속
+
+모든 JPA 엔티티는 `BaseEntity`를 상속받아야 합니다:
+
+```kotlin
+import com.dalmeng.common.jpa.entity.BaseEntity
+
+@Entity
+class MyEntity(
+    // 엔티티별 필드
+) : BaseEntity()
+```
+
+## 필드 사용 규칙
+
+### seq (내부 식별자)
+- **외부에 노출하지 않음**: API 응답, 로그, 외부 인터페이스에 사용 금지
+- **내부 로직에서만 사용**: 성능 최적화가 필요한 조회에서만 사용
+- **예시**: `entityManager.find(Entity::class.java, seq)`
+
+### id (공개 식별자)
+- **외부 식별자로 사용**: API 응답, URL 파라미터 등에 사용
+- **업데이트 불가**: 생성 후 변경할 수 없음
+- **ULID 형식**: 26자 문자열
+- **예시**: `entityManager.createQuery("SELECT e FROM Entity e WHERE e.id = :id")`
+
+### isDeleted (Soft Deletion)
+- **논리적 삭제**: 물리적 삭제 대신 `isDeleted = true`로 설정
+- **조회 시 필터링**: 삭제되지 않은 엔티티만 조회하도록 쿼리에 포함
+- **예시**: `WHERE e.isDeleted = false`
+
+### createdAt, updatedAt (타임스탬프)
+- **자동 관리**: JPA가 자동으로 설정/업데이트
+- **수동 설정 금지**: 직접 값을 설정하지 않음
+
+## 엔티티 생성 패턴
+
+엔티티는 companion object의 `create` 메서드를 통해 생성합니다:
+
+```kotlin
+@Entity
+class MyEntity(
+    var name: String
+) : BaseEntity() {
+    companion object {
+        fun create(name: String): MyEntity {
+            return MyEntity(name = name)
+        }
+    }
+}
+```
+
+## 쿼리 작성 가이드
+
+### 삭제되지 않은 엔티티 조회
+항상 `isDeleted = false` 조건을 포함합니다:
+
+```kotlin
+entityManager.createQuery(
+    "SELECT e FROM MyEntity e WHERE e.isDeleted = false",
+    MyEntity::class.java
+)
+```
+
+### 공개 ID로 조회
+외부에서 받은 ID로 조회할 때:
+
+```kotlin
+entityManager.createQuery(
+    "SELECT e FROM MyEntity e WHERE e.id = :id AND e.isDeleted = false",
+    MyEntity::class.java
+).setParameter("id", publicId).singleResult
+```
+
+## 주의사항
+
+1. **seq는 절대 외부에 노출하지 않음**: 보안 및 성능상의 이유
+2. **모든 조회 쿼리에 isDeleted 필터 포함**: 삭제된 데이터가 조회되지 않도록
+3. **id는 업데이트 불가**: 생성 후 변경할 수 없으므로 수정 로직에 포함하지 않음
+4. **BaseEntity 필드는 직접 수정하지 않음**: createdAt, id는 변경 불가, updatedAt은 JPA가 자동 관리
